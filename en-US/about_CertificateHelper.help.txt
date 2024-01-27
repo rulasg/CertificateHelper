@@ -1,0 +1,20 @@
+TOPIC
+    about_CertificateHelper
+
+AUTHOR
+    rulasg
+
+COPYRIGHT
+    (c) rulasg. All rights reserved.
+
+SHORT DESCRIPTION
+    Helper module to create pdf certificates
+
+LONG DESCRIPTION
+    Helper module to create pdf certificates
+
+KEYWORDS
+    Powershell Testing UnitTest Module TestingHelper
+
+SEE ALSO
+    https://github.com/rulasg/TestingHelper/
