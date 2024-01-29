@@ -18,3 +18,64 @@ KEYWORDS
 
 SEE ALSO
     https://github.com/rulasg/TestingHelper/
+
+# Certificate Helper
+
+This module will help you manage user certificates.
+
+A certificate is an ID that identifies all the information that a certificate contains.
+All this information will be stored on a JSON file.
+At the same time a PDF will be generated to be sent to the user.
+
+This way you can generate the PDF based on the JSON file.
+Storing the JSON files we have a database of all the certificates issued for later analysis.
+
+
+## Generate a certificate 
+
+Create a HashTable with all the information of the training or achievement to certify.
+Call New-CertificateV1 with the student company and student handle as parameters.
+A call to GitHub will be made to retrieve the user Name. 
+This is a sanity check to confirm that the user exists.
+
+```powershell
+
+    $param = @{
+        StampName = "solidify_training_v1"
+        PdfTemplate = certificateTemplate.pdf
+
+        TrainerHandle = "smartGuy"
+        TrainerName = "Joe Smart"
+        TrainerCompany = "trainerCompany"
+        CourseName = "The Name of the course attended"
+        CourseDate = "February 29th, 2033"
+    }
+        
+    # Generate certificate
+    New-CertificateV1 -StudentHandle "$studentHandle" -StudentCompany "studentCompany" @param
+```
+
+You can pipe user names to New-CertificateV1 to generate several certificates of the same course for differnt users.
+
+```powershell
+    $param = @{
+        StampName = "solidify_training_v1"
+        PdfTemplate = certificateTemplate.pdf
+
+        TrainerHandle = "smartGuy"
+        TrainerName = "Joe Smart"
+        TrainerCompany = "trainerCompany"
+        CourseName = "The Name of the course attended"
+        CourseDate = "February 29th, 2033"
+    }
+        
+    # Generate certificate from a list of students
+    (user1,user2,user3) | New-CertificateV1 -StudentCompany "studentCompany" @param
+
+    # Generate certificate from a file with a list of students
+    Get-Content .\students.txt | New-CertificateV1 -StudentCompany "studentCompany" @param
+
+    # Generate certificate from the output of a different command as Get-ClassUsers from the 
+    # module rulasg/GitHubDevelopersTrainingTeacherScripts
+    Get-ClassUsers -RepoName gh-For-Dev-23120 | New-CertificateV1 -StudentCompany "studentCompany" @param
+```

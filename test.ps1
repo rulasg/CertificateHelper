@@ -134,6 +134,8 @@ function Get-RequiredModule{
 # Import-RequiredModule -Name TestingHelper -AllowPrerelease
 Import-RequiredModule "TestingHelper" -AllowPrerelease
 
+Import-RequiredModule "PdfHelper" -AllowPrerelease
+
 # Install and Load Module dependencies
 Get-RequiredModule | Import-RequiredModule -AllowPrerelease 
 
