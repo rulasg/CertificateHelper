@@ -121,32 +121,34 @@ function New-JsonCertificateV1{
         [Parameter(ValueFromPipelineByPropertyName)][string]$StudentCompany
     )
 
-    $cert = @{
-        StampName = $StampName
-        PdfTemplate = $PdfTemplate
-        PdfOutput = $PdfOutput
-        StudentName = $StudentName
-        StudentHandle = $StudentHandle
-        StudentCompany = $StudentCompany
-        TrainerName = $TrainerName
-        TrainerHandle = $TrainerHandle
-        TrainerCompany = $TrainerCompany
-        CourseName = $CourseName
-        CourseDate = $CourseDate
-        Id = $Id
-        Date = Get-Date
+    process {
+        
+        $cert = @{
+            StampName = $StampName
+            PdfTemplate = $PdfTemplate
+            PdfOutput = $PdfOutput
+            StudentName = $StudentName
+            StudentHandle = $StudentHandle
+            StudentCompany = $StudentCompany
+            TrainerName = $TrainerName
+            TrainerHandle = $TrainerHandle
+            TrainerCompany = $TrainerCompany
+            CourseName = $CourseName
+            CourseDate = $CourseDate
+            Id = $Id
+            Date = Get-Date
+        }
+        
+        $outPath = $PdfOutput | Split-Path -Parent
+        $outName = $PdfOutput | Split-Path -LeafBase
+        $outJson = $outName + ".json"
+        
+        $outPathJson = [string]::IsNullOrWhiteSpace($outPath) ? $outJson : $($outPath | Join-Path -ChildPath $outJson)
+        
+        $json = $cert | ConvertTo-Json -Depth 10
+        
+        $json | Out-File -FilePath $outPathJson -Force
+        
+        return $outPathJson
     }
-
-    $outPath = $PdfOutput | Split-Path -Parent
-    $outName = $PdfOutput | Split-Path -LeafBase
-    $outJson = $outName + ".json"
-
-    $outPathJson = [string]::IsNullOrWhiteSpace($outPath) ? $outJson : $($outPath | Join-Path -ChildPath $outJson)
-
-    $json = $cert | ConvertTo-Json -Depth 10
-
-    $json | Out-File -FilePath $outPathJson -Force
-
-    return $outPathJson
-
 } Export-ModuleMember -Function New-JsonCertificateV1
