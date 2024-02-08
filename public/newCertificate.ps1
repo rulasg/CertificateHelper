@@ -2,7 +2,7 @@ function New-CertificateV1{
     [CmdletBinding()]
     param(
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)]
-        [ValidateSet('Default','solidify_training_v1')][string]$StampName,
+        [ValidateSet('Default','solidify_training_v1','solidify_training_v2')][string]$StampName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$PdfTemplate,
 
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerName,
@@ -11,8 +11,9 @@ function New-CertificateV1{
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseDate,
 
-        [Parameter(Mandatory,ValueFromPipeline)][string]$StudentHandle,
-        [Parameter(Mandatory,ValueFromPipeline)][string]$StudentCompany
+        [Parameter(ValueFromPipeline)][string]$StudentHandle,
+        [Parameter()][string]$StudentName,
+        [Parameter()][string]$StudentCompany
 
     )
     
@@ -33,23 +34,33 @@ function New-CertificateV1{
     }
 
     process {
-        
-        $StudentName = $StudentHandle | Get-UserName
 
-        $sudent = @{
+        # Resolve the student name
+        if([string]::IsNullOrWhiteSpace($StudentName)){
+            $StudentName = $StudentHandle | Get-UserName
+            
+            if([string]::IsNullOrWhiteSpace($StudentName)){
+                Write-Error -Message "Student name missing and not found in GitHub profile"
+                return
+            }
+        }
+
+        
+        $student = @{
             StudentHandle = $StudentHandle
             StudentName = $StudentName
             StudentCompany = $StudentCompany
         }
-
+        
         $id = [guid]::NewGuid().ToString()
-        $certName = $StudentHandle + "_" + $id
+        $nameid = [string]::IsNullOrWhiteSpace($StudentHandle) ? $($StudentName -replace " ","_") : $StudentHandle
+        $certName = $nameid + "_" + $id
         $userCert = @{
             id = $id
             PdfOutput = $certName + ".pdf"
         }
 
-        $json = New-JsonCertificateV1 @cert @training @sudent @userCert
+        $json = New-JsonCertificateV1 @cert @training @student @userCert
         Write-Output $json
 
         $pdf = $json | New-PdfCertificateV1
@@ -95,18 +106,19 @@ function New-JsonCertificateV1{
     [CmdletBinding()]
     param(
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)]
-        [ValidateSet('Default','solidify_training_v1')][string]$StampName,
+        [ValidateSet('Default','solidify_training_v1','solidify_training_v2')][string]$StampName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$PdfTemplate,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$PdfOutput,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$StudentName,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$StudentHandle,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$StudentCompany,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerHandle,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerCompany,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseDate,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$Id
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$Id,
+        
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentHandle,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentName,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentCompany
     )
 
     $cert = @{
