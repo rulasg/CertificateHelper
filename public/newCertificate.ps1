@@ -1,5 +1,5 @@
 function New-CertificateV1{
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)]
         [ValidateSet('Default','solidify_training_v1','solidify_training_v2')][string]$StampName,
@@ -60,11 +60,14 @@ function New-CertificateV1{
             PdfOutput = $certName + ".pdf"
         }
 
-        $json = New-JsonCertificateV1 @cert @training @student @userCert
-        Write-Output $json
-
-        $pdf = $json | New-PdfCertificateV1
-        Write-Output $pdf
+        if ($PSCmdlet.ShouldProcess($StudentName, "New-JsonCertificateV1 | New-PdfCertificateV1")) {
+            
+            $json = New-JsonCertificateV1 @cert @training @student @userCert
+            Write-Output $json
+            
+            $pdf = $json | New-PdfCertificateV1
+            Write-Output $pdf
+        }
 
     }
 } Export-ModuleMember -Function New-CertificateV1
