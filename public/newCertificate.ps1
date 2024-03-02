@@ -1,8 +1,8 @@
 function New-CertificateV1{
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)]
-        [ValidateSet('Default','solidify_training_v1')][string]$StampName,
+        [ValidateSet('Default','solidify_training_v1','solidify_training_v2')][string]$StampName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$PdfTemplate,
 
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerName,
@@ -11,8 +11,9 @@ function New-CertificateV1{
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseDate,
 
-        [Parameter(Mandatory,ValueFromPipeline)][string]$StudentHandle,
-        [Parameter(Mandatory,ValueFromPipeline)][string]$StudentCompany
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentHandle,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentName,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentCompany
 
     )
     
@@ -33,30 +34,58 @@ function New-CertificateV1{
     }
 
     process {
-        
-        $StudentName = $StudentHandle | Get-UserName
 
-        $sudent = @{
+        # Resolve the student name
+        if([string]::IsNullOrWhiteSpace($StudentName)){
+            $StudentName = $StudentHandle | Get-UserName
+            
+            if([string]::IsNullOrWhiteSpace($StudentName)){
+                Write-Error -Message "Student name missing and not found in GitHub profile"
+                return
+            }
+        }
+
+        
+        $student = @{
             StudentHandle = $StudentHandle
             StudentName = $StudentName
             StudentCompany = $StudentCompany
         }
-
+        
         $id = [guid]::NewGuid().ToString()
-        $certName = $StudentHandle + "_" + $id
+        $nameid = [string]::IsNullOrWhiteSpace($StudentHandle) ? $($StudentName -replace " ","_") : $StudentHandle
+        $certName = $nameid + "_" + $id
         $userCert = @{
             id = $id
             PdfOutput = $certName + ".pdf"
         }
 
-        $json = New-JsonCertificateV1 @cert @training @sudent @userCert
-        Write-Output $json
-
-        $pdf = $json | New-PdfCertificateV1
-        Write-Output $pdf
+        if ($PSCmdlet.ShouldProcess($StudentName, "New-JsonCertificateV1 | New-PdfCertificateV1")) {
+            
+            $json = New-JsonCertificateV1 @cert @training @student @userCert
+            Write-Output $json
+            
+            $pdf = $json | New-PdfCertificateV1
+            Write-Output $pdf
+        }
 
     }
 } Export-ModuleMember -Function New-CertificateV1
+
+function ConvertTo-StudentHandle{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)][string]$StudentHandle
+    )
+
+    process{
+        $student = [PSCustomObject]@{
+            StudentHandle = $StudentHandle
+        }
+
+        return $student
+    }
+} Export-ModuleMember -Function ConvertTo-StudentHandle
 
 function New-PdfCertificateV1{
     [CmdletBinding()]
@@ -95,46 +124,49 @@ function New-JsonCertificateV1{
     [CmdletBinding()]
     param(
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)]
-        [ValidateSet('Default','solidify_training_v1')][string]$StampName,
+        [ValidateSet('Default','solidify_training_v1','solidify_training_v2')][string]$StampName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$PdfTemplate,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$PdfOutput,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$StudentName,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$StudentHandle,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$StudentCompany,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerHandle,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$TrainerCompany,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseDate,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$Id
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$Id,
+        
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentHandle,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentName,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentCompany
     )
 
-    $cert = @{
-        StampName = $StampName
-        PdfTemplate = $PdfTemplate
-        PdfOutput = $PdfOutput
-        StudentName = $StudentName
-        StudentHandle = $StudentHandle
-        StudentCompany = $StudentCompany
-        TrainerName = $TrainerName
-        TrainerHandle = $TrainerHandle
-        TrainerCompany = $TrainerCompany
-        CourseName = $CourseName
-        CourseDate = $CourseDate
-        Id = $Id
-        Date = Get-Date
+    process {
+        
+        $cert = @{
+            StampName = $StampName
+            PdfTemplate = $PdfTemplate
+            PdfOutput = $PdfOutput
+            StudentName = $StudentName
+            StudentHandle = $StudentHandle
+            StudentCompany = $StudentCompany
+            TrainerName = $TrainerName
+            TrainerHandle = $TrainerHandle
+            TrainerCompany = $TrainerCompany
+            CourseName = $CourseName
+            CourseDate = $CourseDate
+            Id = $Id
+            Date = Get-Date
+        }
+        
+        $outPath = $PdfOutput | Split-Path -Parent
+        $outName = $PdfOutput | Split-Path -LeafBase
+        $outJson = $outName + ".json"
+        
+        $outPathJson = [string]::IsNullOrWhiteSpace($outPath) ? $outJson : $($outPath | Join-Path -ChildPath $outJson)
+        
+        $json = $cert | ConvertTo-Json -Depth 10
+        
+        $json | Out-File -FilePath $outPathJson -Force
+        
+        return $outPathJson
     }
-
-    $outPath = $PdfOutput | Split-Path -Parent
-    $outName = $PdfOutput | Split-Path -LeafBase
-    $outJson = $outName + ".json"
-
-    $outPathJson = [string]::IsNullOrWhiteSpace($outPath) ? $outJson : $($outPath | Join-Path -ChildPath $outJson)
-
-    $json = $cert | ConvertTo-Json -Depth 10
-
-    $json | Out-File -FilePath $outPathJson -Force
-
-    return $outPathJson
-
 } Export-ModuleMember -Function New-JsonCertificateV1
