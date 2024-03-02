@@ -26,7 +26,7 @@ function CertificateHelperTest_NewCertificateV1_SUCCESS{
     }
         
     # Generate certificate
-    $result = $handle | New-CertificateV1 -StudentCompany "studentCompany" @param
+    $result = New-CertificateV1 -StudentHandle $handle -StudentCompany "studentCompany" @param
 
     $jsonFile = $result | Where-Object {$_ -like "*.json"}
     $pdfFile = $result | Where-Object {$_ -like "*.pdf"}
@@ -60,7 +60,7 @@ function CertificateHelperTest_NewCertificateV1_Error_NotAllInfo_MissingNameInPr
     }
         
     # Generate certificate
-    $result = $handle | New-CertificateV1 -StudentCompany "studentCompany" @param @ErrorParameters
+    $result = $handle | ConvertTo-StudentHandle | New-CertificateV1 -StudentCompany "studentCompany" @param @ErrorParameters
 
     Assert-IsNull -Object $result
     Assert-Contains -Presented $errorvar.Exception.Message -Expected 'Student name missing and not found in GitHub profile'
@@ -124,7 +124,7 @@ $USER_JSON = @'
     }
 
         # Generate certificate
-        $result = ("user1","user2","user3") | New-CertificateV1 -StudentCompany "studentCompany" @param
+        $result = ("user1","user2","user3") | ConvertTo-StudentHandle | New-CertificateV1 -StudentCompany "studentCompany" @param
 
         $jsonFile = $result | Where-Object {$_ -like "*.json"}
         $pdfFile = $result | Where-Object {$_ -like "*.pdf"}

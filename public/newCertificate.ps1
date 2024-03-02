@@ -11,9 +11,9 @@ function New-CertificateV1{
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseName,
         [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string]$CourseDate,
 
-        [Parameter(ValueFromPipeline)][string]$StudentHandle,
-        [Parameter()][string]$StudentName,
-        [Parameter()][string]$StudentCompany
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentHandle,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentName,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$StudentCompany
 
     )
     
@@ -71,6 +71,21 @@ function New-CertificateV1{
 
     }
 } Export-ModuleMember -Function New-CertificateV1
+
+function ConvertTo-StudentHandle{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)][string]$StudentHandle
+    )
+
+    process{
+        $student = [PSCustomObject]@{
+            StudentHandle = $StudentHandle
+        }
+
+        return $student
+    }
+} Export-ModuleMember -Function ConvertTo-StudentHandle
 
 function New-PdfCertificateV1{
     [CmdletBinding()]
